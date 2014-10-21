@@ -39,39 +39,39 @@ PROV_MENTION = PROV['Mention']
 PROV_MEMBERSHIP = PROV['Membership']
 
 PROV_N_MAP = {
-    PROV_ENTITY:               u'entity',
-    PROV_ACTIVITY:             u'activity',
-    PROV_GENERATION:           u'wasGeneratedBy',
-    PROV_USAGE:                u'used',
-    PROV_COMMUNICATION:        u'wasInformedBy',
-    PROV_START:                u'wasStartedBy',
-    PROV_END:                  u'wasEndedBy',
-    PROV_INVALIDATION:         u'wasInvalidatedBy',
-    PROV_DERIVATION:           u'wasDerivedFrom',
-    PROV_AGENT:                u'agent',
-    PROV_ATTRIBUTION:          u'wasAttributedTo',
-    PROV_ASSOCIATION:          u'wasAssociatedWith',
-    PROV_DELEGATION:           u'actedOnBehalfOf',
-    PROV_INFLUENCE:            u'wasInfluencedBy',
-    PROV_ALTERNATE:            u'alternateOf',
-    PROV_SPECIALIZATION:       u'specializationOf',
-    PROV_MENTION:              u'mentionOf',
-    PROV_MEMBERSHIP:           u'hadMember',
-    PROV_BUNDLE:               u'bundle',
+    PROV_ENTITY:               'entity',
+    PROV_ACTIVITY:             'activity',
+    PROV_GENERATION:           'wasGeneratedBy',
+    PROV_USAGE:                'used',
+    PROV_COMMUNICATION:        'wasInformedBy',
+    PROV_START:                'wasStartedBy',
+    PROV_END:                  'wasEndedBy',
+    PROV_INVALIDATION:         'wasInvalidatedBy',
+    PROV_DERIVATION:           'wasDerivedFrom',
+    PROV_AGENT:                'agent',
+    PROV_ATTRIBUTION:          'wasAttributedTo',
+    PROV_ASSOCIATION:          'wasAssociatedWith',
+    PROV_DELEGATION:           'actedOnBehalfOf',
+    PROV_INFLUENCE:            'wasInfluencedBy',
+    PROV_ALTERNATE:            'alternateOf',
+    PROV_SPECIALIZATION:       'specializationOf',
+    PROV_MENTION:              'mentionOf',
+    PROV_MEMBERSHIP:           'hadMember',
+    PROV_BUNDLE:               'bundle',
 }
 
 # Records defined as subtypes in PROV-N but top level types in for example
 # PROV XML also need a mapping.
 ADDITIONAL_N_MAP = {
-    PROV['Revision']:          u'wasRevisionOf',
-    PROV['Quotation']:         u'wasQuotedFrom',
-    PROV['PrimarySource']:     u'hadPrimarySource',
-    PROV['SoftwareAgent']:      u'softwareAgent',
-    PROV['Person']:            u'person',
-    PROV['Organization']:      u'organization',
-    PROV['Plan']:              u'plan',
-    PROV['Collection']:        u'collection',
-    PROV['EmptyCollection']:   u'emptyCollection',
+    PROV['Revision']:          'wasRevisionOf',
+    PROV['Quotation']:         'wasQuotedFrom',
+    PROV['PrimarySource']:     'hadPrimarySource',
+    PROV['SoftwareAgent']:      'softwareAgent',
+    PROV['Person']:            'person',
+    PROV['Organization']:      'organization',
+    PROV['Plan']:              'plan',
+    PROV['Collection']:        'collection',
+    PROV['EmptyCollection']:   'emptyCollection',
 }
 
 # Maps qualified names from the PROV namespace to their base class. If it
@@ -167,7 +167,7 @@ PROV_ATTRIBUTE_QNAMES = set([
 PROV_ATTRIBUTE_LITERALS = set([PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME])
 # Set of formal attributes of PROV records
 PROV_ATTRIBUTES = PROV_ATTRIBUTE_QNAMES | PROV_ATTRIBUTE_LITERALS
-PROV_RECORD_ATTRIBUTES = list((attr, unicode(attr)) for attr in PROV_ATTRIBUTES)
+PROV_RECORD_ATTRIBUTES = list((attr, str(attr)) for attr in PROV_ATTRIBUTES)
 
 PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_N_MAP)
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)

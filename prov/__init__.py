@@ -43,7 +43,7 @@ def read(source, format=None):
 
     from prov.serializers import Registry
     Registry.load_serializers()
-    serializers = Registry.serializers.keys()
+    serializers = list(Registry.serializers.keys())
 
     if format:
         return ProvDocument.deserialize(source=source, format=format.lower())

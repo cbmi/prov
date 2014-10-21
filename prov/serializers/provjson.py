@@ -11,7 +11,6 @@ from collections import defaultdict
 import datetime
 import io
 import json
-import StringIO
 from prov import Serializer, Error
 from prov.constants import *
 from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, ProvBundle, \
@@ -36,9 +35,9 @@ class AnonymousIDGenerator():
 
 # Reverse map for prov.model.XSD_DATATYPE_PARSERS
 LITERAL_XSDTYPE_MAP = {
-    float: u"xsd:double",
-    long: u"xsd:long",
-    int: u"xsd:int"
+    float: "xsd:double",
+    int: "xsd:long",
+    int: "xsd:int"
     # boolean, string values are supported natively by PROV-JSON
     # datetime values are converted separately
 }
@@ -46,22 +45,17 @@ LITERAL_XSDTYPE_MAP = {
 
 class ProvJSONSerializer(Serializer):
     def serialize(self, stream, **kwargs):
-        if isinstance(stream, (io.StringIO, io.BytesIO)):
-            buf = StringIO.StringIO()
-            try:
-                json.dump(self.document, buf, cls=ProvJSONEncoder,
-                          **kwargs)
-                buf.seek(0, 0)
-                if isinstance(stream, io.BytesIO):
-                    stream.write(buf.read().encode('utf-8'))
-                else:
-                    stream.write(unicode(buf.read()))
-            finally:
-                buf.close()
-            return
-        json.dump(self.document, stream, cls=ProvJSONEncoder, **kwargs)
+        if isinstance(stream, io.StringIO):
+            json.dump(self.document, stream, cls=ProvJSONEncoder, **kwargs)
+        else:
+            s = json.dumps(self.document, cls=ProvJSONEncoder, **kwargs)
+            stream.write(s.encode('utf-8'))
 
     def deserialize(self, stream, **kwargs):
+        if isinstance(stream, io.BytesIO):
+            s = stream.read().decode('utf-8')
+            return json.loads(s, cls=ProvJSONDecoder, **kwargs)
+
         return json.load(stream, cls=ProvJSONDecoder, **kwargs)
 
 
@@ -94,7 +88,7 @@ def encode_json_document(document):
     for bundle in document.bundles:
         #  encoding the sub-bundle
         bundle_json = encode_json_container(bundle)
-        container['bundle'][unicode(bundle.identifier)] = bundle_json
+        container['bundle'][str(bundle.identifier)] = bundle_json
     return container
 
 
@@ -106,7 +100,7 @@ def encode_json_container(bundle):
     if bundle._namespaces._default:
         prefixes['default'] = bundle._namespaces._default.uri
     if prefixes:
-        container[u'prefix'] = prefixes
+        container['prefix'] = prefixes
 
     id_generator = AnonymousIDGenerator()
     real_or_anon_id = lambda r: r._identifier if r._identifier else id_generator.get_anon_id(r)
@@ -114,16 +108,16 @@ def encode_json_container(bundle):
     for record in bundle._records:
         rec_type = record.get_type()
         rec_label = PROV_N_MAP[rec_type]
-        identifier = unicode(real_or_anon_id(record))
+        identifier = str(real_or_anon_id(record))
 
         record_json = {}
         if record._attributes:
-            for (attr, values) in record._attributes.items():
+            for (attr, values) in list(record._attributes.items()):
                 if not values:
                     continue
-                attr_name = unicode(attr)
+                attr_name = str(attr)
                 if attr in PROV_ATTRIBUTE_QNAMES:
-                    record_json[attr_name] = unicode(first(values))  # TODO: QName export
+                    record_json[attr_name] = str(first(values))  # TODO: QName export
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     record_json[attr_name] = first(values).isoformat()
                 else:
@@ -154,31 +148,31 @@ def encode_json_container(bundle):
 
 def decode_json_document(content, document):
     bundles = dict()
-    if u'bundle' in content:
-        bundles = content[u'bundle']
-        del content[u'bundle']
+    if 'bundle' in content:
+        bundles = content['bundle']
+        del content['bundle']
 
     decode_json_container(content, document)
 
-    for bundle_id, bundle_content in bundles.items():
+    for bundle_id, bundle_content in list(bundles.items()):
         bundle = ProvBundle(document=document)
         decode_json_container(bundle_content, bundle)
         document.add_bundle(bundle, bundle.valid_qualified_name(bundle_id))
 
 
 def decode_json_container(jc, bundle):
-    if u'prefix' in jc:
-        prefixes = jc[u'prefix']
-        for prefix, uri in prefixes.items():
+    if 'prefix' in jc:
+        prefixes = jc['prefix']
+        for prefix, uri in list(prefixes.items()):
             if prefix != 'default':
                 bundle.add_namespace(Namespace(prefix, uri))
             else:
                 bundle.set_default_namespace(uri)
-        del jc[u'prefix']
+        del jc['prefix']
 
     for rec_type_str in jc:
         rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
-        for rec_id, content in jc[rec_type_str].items():
+        for rec_id, content in list(jc[rec_type_str].items()):
             if hasattr(content, 'items'):  # it is a dict
                 #  There is only one element, create a singleton list
                 elements = [content]
@@ -190,7 +184,7 @@ def decode_json_container(jc, bundle):
                 attributes = dict()
                 other_attributes = []
                 membership_extra_members = None  # this is for the multiple-entity membership hack to come
-                for attr_name, values in element.items():
+                for attr_name, values in list(element.items()):
                     attr = PROV_ATTRIBUTES_ID_MAP[attr_name] if attr_name in PROV_ATTRIBUTES_ID_MAP \
                         else valid_qualified_name(bundle, attr_name)
                     if attr in PROV_ATTRIBUTES:
@@ -237,17 +231,17 @@ def encode_json_representation(value):
     if isinstance(value, Literal):
         return literal_json_representation(value)
     elif isinstance(value, datetime.datetime):
-        return {'$': value.isoformat(), 'type': u'xsd:dateTime'}
+        return {'$': value.isoformat(), 'type': 'xsd:dateTime'}
     elif isinstance(value, XSDQName):
         # Process XSDQName before QualifiedName because it is a subclass of QualifiedName
         # TODO QName export
-        return {'$': str(value), 'type': u'xsd:QName'}
+        return {'$': str(value), 'type': 'xsd:QName'}
     elif isinstance(value, QualifiedName):
         # TODO Manage prefix in the whole structure consistently
         # TODO QName export
-        return {'$': str(value), 'type': u'prov:QualifiedName'}
+        return {'$': str(value), 'type': 'prov:QualifiedName'}
     elif isinstance(value, Identifier):
-        return {'$': value.uri, 'type': u'xsd:anyURI'}
+        return {'$': value.uri, 'type': 'xsd:anyURI'}
     elif type(value) in LITERAL_XSDTYPE_MAP:
         return {'$': value, 'type': LITERAL_XSDTYPE_MAP[type(value)]}
     else:
@@ -280,6 +274,6 @@ def literal_json_representation(literal):
     # TODO: QName export
     value, datatype, langtag = literal.value, literal.datatype, literal.langtag
     if langtag:
-        return {'$': value, 'lang': langtag, 'type': unicode(datatype)}
+        return {'$': value, 'lang': langtag, 'type': str(datatype)}
     else:
-        return {'$': value, 'type': unicode(datatype)}
+        return {'$': value, 'type': str(datatype)}

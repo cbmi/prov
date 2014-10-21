@@ -459,7 +459,7 @@ def datatypes():
         'ex:long': 123456789000,
         'ex:bool': True,
         'ex:str': 'Some string',
-        'ex:unicode': u'Some unicode string with accents: Huỳnh Trung Đông',
+        'ex:unicode': 'Some unicode string with accents: Huỳnh Trung Đông',
         'ex:timedate': datetime.datetime(2012, 12, 12, 14, 7, 48),
         'ex:intstr': Literal("PROV Internationalized string", PROV["InternationalizedString"], "en"),
     }

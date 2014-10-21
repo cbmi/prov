@@ -4,13 +4,6 @@ import unittest
 
 from prov.model import ProvDocument
 
-try:
-    from cStringIO import StringIO
-    assert StringIO
-except ImportError:
-    from StringIO import StringIO
-    assert StringIO
-
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +76,7 @@ class RoundTripTestCase(BaseTestCase):
             # Assume UTF-8 encoding which is forced by the particular
             # PROV XML implementation and should also work for the PROV
             # JSON implementation.
-            msg_extra = u"'%s' serialization content:\n%s" % (
+            msg_extra = "'%s' serialization content:\n%s" % (
                 self.FORMAT, stream.read().decode("utf-8"))
-            msg = u'\n'.join((msg, msg_extra)) if msg else msg_extra
+            msg = '\n'.join((msg, msg_extra)) if msg else msg_extra
             self.assertEqual(prov_doc, prov_doc_new, msg)

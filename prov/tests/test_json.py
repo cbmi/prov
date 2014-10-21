@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 class TestJSONSerializer(BaseTestCase):
     def test_decoding_unicode_value(self):
-        unicode_char = u'\u2019'
-        json_content = u'''{
+        unicode_char = '\u2019'
+        json_content = '''{
     "prefix": {
         "ex": "http://www.example.org"
     },

@@ -203,7 +203,7 @@ class ProvXMLTestCase(unittest.TestCase):
         </prov:document>
         """
         with io.BytesIO() as xml:
-            xml.write(xml_string)
+            xml.write(xml_string.encode('utf-8'))
             xml.seek(0, 0)
             actual_document = prov.ProvDocument.deserialize(source=xml,
                                                             format="xml")
@@ -238,7 +238,7 @@ class ProvXMLTestCase(unittest.TestCase):
         </prov:document>
         """
         with io.BytesIO() as xml:
-            xml.write(xml_string)
+            xml.write(xml_string.encode('utf-8'))
             xml.seek(0, 0)
             actual_document = prov.ProvDocument.deserialize(source=xml,
                                                             format="xml")
@@ -286,7 +286,7 @@ class ProvXMLTestCase(unittest.TestCase):
             warnings.simplefilter("always")
 
             with io.BytesIO() as xml:
-                xml.write(xml_string)
+                xml.write(xml_string.encode('utf-8'))
                 xml.seek(0, 0)
                 doc = prov.ProvDocument.deserialize(source=xml, format="xml")
 

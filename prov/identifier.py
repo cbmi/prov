@@ -8,17 +8,17 @@ class Identifier(object):
     # TODO: make Identifier an "abstract" base class and move xsd:anyURI into a subclass
 
     def __init__(self, uri):
-        self._uri = unicode(uri)  # Ensure this is a unicode string
+        self._uri = str(uri)  # Ensure this is a unicode string
 
     @property
     def uri(self):
         return self._uri
 
-    def __unicode__(self):
+    def __str__(self):
         return self._uri
 
-    def __str__(self):
-        return unicode(self).encode('utf-8')
+    def __bytes__(self):
+        return str(self).encode('utf-8')
 
     def __eq__(self, other):
         return self.uri == other.uri if isinstance(other, Identifier) else False
@@ -27,18 +27,18 @@ class Identifier(object):
         return hash((self.uri, self.__class__))
 
     def __repr__(self):
-        return u'<%s: %s>' % (self.__class__.__name__, self._uri)
+        return '<%s: %s>' % (self.__class__.__name__, self._uri)
 
     def provn_representation(self):
-        return u'"%s" %%%% xsd:anyURI' % self._uri
+        return '"%s" %%%% xsd:anyURI' % self._uri
 
 
 class QualifiedName(Identifier):
     def __init__(self, namespace, localpart):
-        Identifier.__init__(self, u''.join([namespace.uri, localpart]))
+        Identifier.__init__(self, ''.join([namespace.uri, localpart]))
         self._namespace = namespace
         self._localpart = localpart
-        self._str = u':'.join([namespace.prefix, localpart]) if namespace.prefix else localpart
+        self._str = ':'.join([namespace.prefix, localpart]) if namespace.prefix else localpart
 
     @property
     def namespace(self):
@@ -48,20 +48,20 @@ class QualifiedName(Identifier):
     def localpart(self):
         return self._localpart
 
-    def __unicode__(self):
+    def __str__(self):
         return self._str
 
-    def __str__(self):
-        return unicode(self).encode('utf-8')
+    def __bytes__(self):
+        return str(self).encode('utf-8')
 
     def __repr__(self):
-        return u'<%s: %s>' % (self.__class__.__name__, self._str)
+        return '<%s: %s>' % (self.__class__.__name__, self._str)
 
     def __hash__(self):
         return hash(self.uri)
 
     def provn_representation(self):
-        return u"'%s'" % self._str
+        return "'%s'" % self._str
 
 
 class XSDQName(QualifiedName):
@@ -72,7 +72,7 @@ class XSDQName(QualifiedName):
         QualifiedName.__init__(self, qualified_name.namespace, qualified_name.localpart)
 
     def provn_representation(self):
-        return u'"%s" %%%% xsd:QName' % self._str
+        return '"%s" %%%% xsd:QName' % self._str
 
 
 class Namespace(object):
@@ -90,13 +90,13 @@ class Namespace(object):
         return self._prefix
 
     def contains(self, identifier):
-        uri = identifier if isinstance(identifier, (str, unicode)) else (
+        uri = identifier if isinstance(identifier, str) else (
             identifier.uri if isinstance(identifier, Identifier) else None
         )
         return uri.startswith(self._uri) if uri else False
 
     def qname(self, identifier):
-        uri = identifier if isinstance(identifier, (str, unicode)) else (
+        uri = identifier if isinstance(identifier, str) else (
             identifier.uri if isinstance(identifier, Identifier) else None
         )
         if uri and uri.startswith(self._uri):
@@ -111,7 +111,7 @@ class Namespace(object):
         return hash((self._uri, self._prefix))
 
     def __repr__(self):
-        return u'<%s: %s {%s}>' % (self.__class__.__name__, self._prefix, self._uri)
+        return '<%s: %s {%s}>' % (self.__class__.__name__, self._prefix, self._uri)
 
     def __getitem__(self, localpart):
         if localpart in self._cache:

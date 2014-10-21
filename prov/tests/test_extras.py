@@ -1,5 +1,5 @@
 import io
-from StringIO import StringIO
+from io import StringIO
 import unittest
 
 from prov.model import *
@@ -74,7 +74,7 @@ def add_further_attributes0(record):
         (EX_NS['tag2'], Literal("hola", langtag="es")),
         (EX2_NS['tag3'], "hi"),
         (EX_NS['tag'], 1),
-        (EX_NS['tag'], long(1)),
+        (EX_NS['tag'], int(1)),
         (EX_NS['tag'], Literal(1, datatype=XSD_SHORT)),
         (EX_NS['tag'], Literal(1, datatype=XSD_DOUBLE)),
         (EX_NS['tag'], 1.0),
@@ -221,7 +221,7 @@ class TestExtras(unittest.TestCase):
         self.assertFalse(document.has_bundles())
         document.bundle(EX_NS['b'])
         self.assertTrue(document.has_bundles())
-        self.assertEqual(u'<ProvDocument>', str(document))
+        self.assertEqual('<ProvDocument>', str(document))
 
     def test_reading_and_writing_to_file_like_objects(self):
         """
@@ -234,7 +234,7 @@ class TestExtras(unittest.TestCase):
         objects = [io.BytesIO, io.StringIO, StringIO]
 
         Registry.load_serializers()
-        formats = Registry.serializers.keys()
+        formats = list(Registry.serializers.keys())
 
         for obj in objects:
             for format in formats:

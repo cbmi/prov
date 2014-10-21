@@ -21,12 +21,12 @@ from copy import deepcopy
 import io
 from prov import Error, serializers
 
-from StringIO import StringIO
+from io import StringIO
 
 import os
 import shutil
 import tempfile
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 from prov.identifier import Identifier, QualifiedName, XSDQName
 from prov.constants import *
@@ -34,7 +34,7 @@ from prov.constants import *
 
 # Data Types
 def _ensure_datetime(value):
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         return dateutil.parser.parse(value)
     else:
         return value
@@ -62,9 +62,9 @@ DATATYPE_PARSERS = {
 
 # Mappings for XSD datatypes to Python standard types
 XSD_DATATYPE_PARSERS = {
-    XSD_STRING: unicode,
+    XSD_STRING: str,
     XSD_DOUBLE: float,
-    XSD_LONG: long,
+    XSD_LONG: int,
     XSD_INT: int,
     XSD_BOOLEAN: parse_boolean,
     XSD_DATETIME: parse_xsd_datetime,
@@ -80,27 +80,27 @@ first = lambda a_set: next(iter(a_set), None)
 
 
 def _ensure_multiline_string_triple_quoted(s):
-    format_str = u'"""%s"""' if isinstance(s, basestring) and '\n' in s else u'"%s"'
+    format_str = '"""%s"""' if isinstance(s, str) and '\n' in s else '"%s"'
     return format_str % s
 
 
 def encoding_provn_value(value):
-    if isinstance(value, basestring):
+    if isinstance(value, str):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
-        return u'"{0}" %% xsd:dateTime'.format(value.isoformat())
+        return '"{0}" %% xsd:dateTime'.format(value.isoformat())
     elif isinstance(value, float):
-        return u'"%g" %%%% xsd:float' % value
+        return '"%g" %%%% xsd:float' % value
     elif isinstance(value, bool):
-        return u'"%i" %%%% xsd:boolean' % value
+        return '"%i" %%%% xsd:boolean' % value
     else:
         # TODO: QName export
-        return unicode(value)
+        return str(value)
 
 
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
-        self._value = unicode(value)  # value is always a string
+        self._value = str(value)  # value is always a string
         if langtag:
             if datatype is None:
                 logger.debug('Assuming prov:InternationalizedString as the type of "%s"@%s' % (value, langtag))
@@ -115,16 +115,16 @@ class Literal(object):
                 )
                 datatype = PROV["InternationalizedString"]
         self._datatype = datatype
-        self._langtag = unicode(langtag) if langtag is not None else None  # langtag is always a string
-
-    def __unicode__(self):
-        return self.provn_representation()
+        self._langtag = str(langtag) if langtag is not None else None  # langtag is always a string
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return self.provn_representation()
+
+    def __bytes__(self):
+        return str(self).encode('utf-8')
 
     def __repr__(self):
-        return u'<Literal: %s>' % self.provn_representation()
+        return '<Literal: %s>' % self.provn_representation()
 
     def __eq__(self, other):
         return (self._value == other.value and self._datatype == other.datatype and self._langtag == other.langtag)\
@@ -151,9 +151,9 @@ class Literal(object):
     def provn_representation(self):
         if self._langtag:
             #  a language tag can only go with prov:InternationalizedString
-            return u'%s@%s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._langtag))
+            return '%s@%s' % (_ensure_multiline_string_triple_quoted(self._value), str(self._langtag))
         else:
-            return u'%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._datatype))
+            return '%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), str(self._datatype))
 
 
 # Exceptions and warnings
@@ -171,8 +171,8 @@ class ProvExceptionInvalidQualifiedName(ProvException):
     def __init__(self, qname):
         self.qname = qname
 
-    def __unicode__(self):
-        return u'Invalid Qualified Name: %s' % self.qname
+    def __str__(self):
+        return 'Invalid Qualified Name: %s' % self.qname
 
 
 #  PROV records
@@ -216,7 +216,7 @@ class ProvRecord(object):
 
     @property
     def attributes(self):
-        return [(attr_name, value) for attr_name, values in self._attributes.items() for value in values]
+        return [(attr_name, value) for attr_name, values in list(self._attributes.items()) for value in values]
 
     @property
     def args(self):
@@ -257,7 +257,7 @@ class ProvRecord(object):
             literal = literal.identifier
 
         if isinstance(literal, str):
-            return unicode(literal)
+            return str(literal)
         elif isinstance(literal, QualifiedName):
             return self._bundle.valid_qualified_name(literal)
         elif isinstance(literal, Literal) and literal.has_no_langtag():
@@ -278,7 +278,7 @@ class ProvRecord(object):
         if attributes:
             if isinstance(attributes, dict):
                 #  Converting the dictionary into a list of tuples (i.e. attribute-value pairs)
-                attributes = attributes.items()
+                attributes = list(attributes.items())
 
             # Check if one of the attributes specifies that the current type
             # is a collection. In that case multiple attributes of the same
@@ -306,13 +306,13 @@ class ProvRecord(object):
                     value = self._auto_literal_conversion(original_value)
 
                 if value is None:
-                    raise ProvException(u'Invalid value for attribute %s: %s' % (attr, original_value))
+                    raise ProvException('Invalid value for attribute %s: %s' % (attr, original_value))
 
                 if not is_collection and attr in PROV_ATTRIBUTES and \
                         self._attributes[attr]:
                     existing_value = first(self._attributes[attr])
                     if value != existing_value:
-                        raise ProvException(u'Cannot have more than one value for attribute %s' % attr)
+                        raise ProvException('Cannot have more than one value for attribute %s' % attr)
                     else:
                         # Same value, ignore it
                         continue
@@ -327,19 +327,19 @@ class ProvRecord(object):
 
         return set(self.attributes) == set(other.attributes)
 
-    def __unicode__(self):
+    def __str__(self):
         return self.get_provn()
 
-    def __str__(self):
-        return unicode(self).encode('utf-8')
+    def __bytes__(self):
+        return str(self).encode('utf-8')
 
     def get_provn(self):
         items = []
 
         # Generating identifier
-        relation_id = u''  # default blank
+        relation_id = ''  # default blank
         if self._identifier:
-            identifier = unicode(self._identifier)  # TODO: QName export
+            identifier = str(self._identifier)  # TODO: QName export
             if self.is_element():
                 items.append(identifier)
             else:
@@ -351,9 +351,9 @@ class ProvRecord(object):
             if attr in self._attributes and self._attributes[attr]:
                 value = first(self._attributes[attr])  # Formal attributes always have single values
                 # TODO: QName export
-                items.append(value.isoformat() if isinstance(value, datetime.datetime) else unicode(value))
+                items.append(value.isoformat() if isinstance(value, datetime.datetime) else str(value))
             else:
-                items.append(u'-')
+                items.append('-')
 
         # Writing out the remaining attributes
         extra = []
@@ -366,11 +366,11 @@ class ProvRecord(object):
                     except AttributeError:
                         provn_represenation = encoding_provn_value(value)
                     # TODO: QName export
-                    extra.append(u'%s=%s' % (unicode(attr), provn_represenation))
+                    extra.append('%s=%s' % (str(attr), provn_represenation))
 
         if extra:
-            items.append(u'[%s]' % u', '.join(extra))
-        prov_n = u'%s(%s%s)' % (PROV_N_MAP[self.get_type()], relation_id, u', '.join(items))
+            items.append('[%s]' % ', '.join(extra))
+        prov_n = '%s(%s%s)' % (PROV_N_MAP[self.get_type()], relation_id, ', '.join(items))
         return prov_n
 
     def is_element(self):
@@ -386,7 +386,7 @@ class ProvElement(ProvRecord):
         return True
 
     def __repr__(self):
-        return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
+        return '<%s: %s>' % (self.__class__.__name__, self._identifier)
 
 
 class ProvRelation(ProvRecord):
@@ -394,9 +394,9 @@ class ProvRelation(ProvRecord):
         return True
 
     def __repr__(self):
-        identifier = u' %s' % self._identifier if self._identifier else u''
+        identifier = ' %s' % self._identifier if self._identifier else ''
         element_1, element_2 = [qname for _, qname in self.formal_attributes[:2]]
-        return u'<%s:%s (%s, %s)>' % (self.__class__.__name__, identifier, element_1, element_2)
+        return '<%s:%s (%s, %s)>' % (self.__class__.__name__, identifier, element_1, element_2)
 
 
 #  ## Component 1: Entities and Activities
@@ -644,13 +644,13 @@ class NamespaceManager(dict):
         self.add_namespaces(namespaces)
 
     def get_namespace(self, uri):
-        for namespace in self.values():
+        for namespace in list(self.values()):
             if uri == namespace._uri:
                 return namespace
         return None
 
     def get_registered_namespaces(self):
-        return self._namespaces.values()
+        return list(self._namespaces.values())
 
     def set_default_namespace(self, uri):
         self._default = Namespace('', uri)
@@ -660,7 +660,7 @@ class NamespaceManager(dict):
         return self._default
 
     def add_namespace(self, namespace):
-        if namespace in self.values():
+        if namespace in list(self.values()):
             #  no need to do anything
             return namespace
         if namespace in self._rename_map:
@@ -703,7 +703,7 @@ class NamespaceManager(dict):
         """
         if isinstance(namespaces, dict):
             # expecting a dictionary of {prefix: uri}, convert it to a list of Namespace
-            namespaces = [Namespace(prefix, uri) for prefix, uri in namespaces.items()]
+            namespaces = [Namespace(prefix, uri) for prefix, uri in list(namespaces.items())]
         if namespaces:
             for ns in namespaces:
                 self.add_namespace(ns)
@@ -746,11 +746,11 @@ class NamespaceManager(dict):
             return XSDQName(new_qname) if is_xsd_qname else new_qname
 
         # Trying to guess from here
-        if not isinstance(qname, (basestring, Identifier)):
+        if not isinstance(qname, (str, Identifier)):
             # Only proceed for string or URI values
             return None
         # Try to generate a Qualified Name
-        str_value = qname.uri if isinstance(qname, Identifier) else unicode(qname)
+        str_value = qname.uri if isinstance(qname, Identifier) else str(qname)
         if str_value.startswith('_:'):
             # this is a blank node ID
             return None
@@ -766,7 +766,7 @@ class NamespaceManager(dict):
             else:
                 #  treat as a URI (with the first part as its scheme)
                 #  check if the URI can be compacted
-                for namespace in self.values():
+                for namespace in list(self.values()):
                     if str_value.startswith(namespace.uri):
                         #  create a QName with the namespace
                         return namespace[str_value.replace(namespace.uri, '')]
@@ -790,7 +790,7 @@ class NamespaceManager(dict):
             return original_prefix
         count = 1
         while True:
-            new_prefix = '_'.join((original_prefix, unicode(count)))
+            new_prefix = '_'.join((original_prefix, str(count)))
             if new_prefix in self:
                 count += 1
             else:
@@ -813,7 +813,10 @@ class ProvBundle(object):
                 self.add_record(record)
 
     def __repr__(self):
-        return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
+        return '<%s: %s>' % (self.__class__.__name__, self._identifier)
+
+    def __hash__(self):
+        return hash((self.__class__.__name__, self._identifier))
 
     @property
     def namespaces(self):
@@ -849,7 +852,7 @@ class ProvBundle(object):
     def get_records(self, class_or_type_or_tuple=None):
         results = list(self._records)
         if class_or_type_or_tuple:
-            return filter(lambda rec: isinstance(rec, class_or_type_or_tuple), results)
+            return [rec for rec in results if isinstance(rec, class_or_type_or_tuple)]
         else:
             return results
 
@@ -928,7 +931,7 @@ class ProvBundle(object):
                     found = True
                     break
             if not found:
-                logger.debug("Equality (ProvBundle): Could not find this record: %s", unicode(record_a))
+                logger.debug("Equality (ProvBundle): Could not find this record: %s", str(record_a))
                 return False
         return True
 
@@ -939,7 +942,7 @@ class ProvBundle(object):
         # TODO: Check unification rules in the PROV-CONSTRAINTS document
         # This method simply merges the records having the same name
         merged_records = dict()
-        for identifier, records in self._id_map.items():
+        for identifier, records in list(self._id_map.items()):
             if len(records) > 1:  # more than one record having the same identifier
                 # merge the records
                 merged = records[0].copy()
@@ -1005,14 +1008,14 @@ class ProvBundle(object):
         if attributes:
             if isinstance(attributes, dict):
                 attr_list.extend(
-                    (attr, value) for attr, value in attributes.items()
+                    (attr, value) for attr, value in list(attributes.items())
                 )
             else:
                 # expecting a list of attributes here
                 attr_list.extend(attributes)
         if other_attributes:
             attr_list.extend(
-                other_attributes.items() if isinstance(other_attributes, dict) else other_attributes
+                list(other_attributes.items()) if isinstance(other_attributes, dict) else other_attributes
             )
         new_record = PROV_REC_CLS[record_type](self, self.valid_qualified_name(identifier), attr_list)
         self._add_record(new_record)
@@ -1293,7 +1296,7 @@ class ProvDocument(ProvBundle):
         self._bundles = dict()
 
     def __repr__(self):
-        return u'<ProvDocument>'
+        return '<ProvDocument>'
 
     def is_document(self):
         return True
@@ -1306,7 +1309,7 @@ class ProvDocument(ProvBundle):
 
     @property
     def bundles(self):
-        return frozenset(self._bundles.values())
+        return frozenset(list(self._bundles.values()))
 
     # Transformations
     def flattened(self):
@@ -1318,7 +1321,7 @@ class ProvDocument(ProvBundle):
             # Creating a new document for all the records
             new_doc = ProvDocument()
             bundled_records = itertools.chain(
-                *[b.get_records() for b in self._bundles.values()]
+                *[b.get_records() for b in list(self._bundles.values())]
             )
             for record in itertools.chain(self._records, bundled_records):
                 new_doc.add_record(record)
@@ -1367,13 +1370,13 @@ class ProvDocument(ProvBundle):
         """Add a bundle to the current document
         """
         if not isinstance(bundle, ProvBundle):
-            raise ProvException(u'Only a ProvBundle instance can be added as a bundle in a ProvDocument.')
+            raise ProvException('Only a ProvBundle instance can be added as a bundle in a ProvDocument.')
 
         if identifier is None:
             identifier = bundle.identifier
 
         if not identifier:
-            raise ProvException(u'The provided bundle has no identifier')
+            raise ProvException('The provided bundle has no identifier')
 
         # Link the bundle namespace manager to the document's
         bundle._namespaces.parent = self._namespaces
@@ -1383,7 +1386,7 @@ class ProvDocument(ProvBundle):
         bundle._identifier = valid_id
 
         if valid_id in self._bundles:
-            raise ProvException(u"A bundle with that identifier already exists")
+            raise ProvException("A bundle with that identifier already exists")
 
         self._bundles[valid_id] = bundle
         bundle._document = self
@@ -1393,7 +1396,7 @@ class ProvDocument(ProvBundle):
             raise ProvException('An identifier is required. Cannot create an unnamed bundle.')
         valid_id = self.valid_qualified_name(identifier)
         if valid_id in self._bundles:
-            raise ProvException(u"A bundle with that identifier already exists")
+            raise ProvException("A bundle with that identifier already exists")
         b = ProvBundle(identifier=valid_id, document=self)
         self._bundles[valid_id] = b
         return b
@@ -1417,8 +1420,8 @@ class ProvDocument(ProvBundle):
             location = destination
             scheme, netloc, path, params, _query, fragment = urlparse(location)
             if netloc != "":
-                print("WARNING: not saving as location " +
-                      "is not a local file reference")
+                print(("WARNING: not saving as location " +
+                      "is not a local file reference"))
                 return
             fd, name = tempfile.mkstemp()
             stream = os.fdopen(fd, "wb")
@@ -1471,7 +1474,7 @@ def sorted_attributes(element, attributes):
     # first and then sorting by the text, also including the namespace
     # prefix if given.
     sort_fct = lambda x: (
-        unicode(x[0]), unicode(x[1].value if hasattr(x[1], "value") else x[1]))
+        str(x[0]), str(x[1].value if hasattr(x[1], "value") else x[1]))
 
     sorted_elements = []
     for item in order:

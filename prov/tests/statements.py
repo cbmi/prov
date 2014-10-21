@@ -67,7 +67,7 @@ class TestStatementsBase(object):
             (EX_NS['tag2'], Literal("hola", langtag="es")),
             (EX2_NS['tag3'], "hi"),
             (EX_NS['tag'], 1),
-            (EX_NS['tag'], long(1)),
+            (EX_NS['tag'], int(1)),
             (EX_NS['tag'], Literal(1, datatype=XSD_SHORT)),
             (EX_NS['tag'], Literal(1, datatype=XSD_DOUBLE)),
             (EX_NS['tag'], 1.0),
